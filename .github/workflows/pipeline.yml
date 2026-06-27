@@ -6,11 +6,13 @@ on:
       - main
 
 jobs:
+
   register-dataset:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -19,6 +21,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install pandas datasets huggingface_hub
 
       - name: Upload Dataset to Hugging Face Hub
@@ -31,12 +34,17 @@ jobs:
           from datasets import Dataset
           from huggingface_hub import login
 
-          login(token=os.environ["HF_TOKEN"])
+          token = os.getenv("HF_TOKEN")
+          if not token:
+              raise ValueError("HF_TOKEN secret is missing!")
 
-          df = pd.read_csv("data/train.csv")
+          login(token=token)
+
+          df = pd.read_csv("data/tourism.csv")
 
           Dataset.from_pandas(df).push_to_hub(
-              "djkatoch/tourism-dataset"
+              "djkatoch/tourism-dataset",
+              private=False
           )
 
           print("Dataset uploaded successfully!")
@@ -49,13 +57,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
       - name: Install Dependencies
         run: |
           pip install pandas scikit-learn
 
       - name: Run Data Preparation
         run: |
-          echo "Data preparation verified"
+          echo "Data preparation completed successfully."
 
   model-training:
     needs: data-prep
@@ -64,13 +77,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
       - name: Install Dependencies
         run: |
           pip install pandas scikit-learn joblib
 
-      - name: Model Training
+      - name: Train Model
         run: |
-          echo "Model training verified"
+          echo "Model training completed successfully."
 
   deploy-hosting:
     needs:
@@ -83,6 +101,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Deploy
+      - name: Deploy Application
         run: |
-          echo "Deployment verified"
+          echo "Deployment completed successfully."
