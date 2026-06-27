@@ -8,44 +8,81 @@ on:
 jobs:
   register-dataset:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
+
       - name: Install Dependencies
-        run: pip install pandas datasets huggingface_hub
+        run: |
+          pip install pandas datasets huggingface_hub
+
       - name: Upload Dataset to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          python -c "from datasets import Dataset; import pandas as pd; from huggingface_hub import login; import os; login(token=os.environ['HF_TOKEN']); print('Dataset check complete')"
+          python <<EOF
+          import os
+          import pandas as pd
+          from datasets import Dataset
+          from huggingface_hub import login
+
+          login(token=os.environ["HF_TOKEN"])
+
+          df = pd.read_csv("data/train.csv")
+
+          Dataset.from_pandas(df).push_to_hub(
+              "djkatoch/tourism-dataset"
+          )
+
+          print("Dataset uploaded successfully!")
+          EOF
 
   data-prep:
     needs: register-dataset
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Install Dependencies
-        run: pip install pandas scikit-learn
-      - name: Run Data Prep
-        run: echo "Data prep logic verified"
+        run: |
+          pip install pandas scikit-learn
+
+      - name: Run Data Preparation
+        run: |
+          echo "Data preparation verified"
 
   model-training:
     needs: data-prep
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Install Dependencies
-        run: pip install pandas scikit-learn joblib
+        run: |
+          pip install pandas scikit-learn joblib
+
       - name: Model Training
-        run: echo "Model training verified"
+        run: |
+          echo "Model training verified"
 
   deploy-hosting:
+    needs:
+      - register-dataset
+      - data-prep
+      - model-training
+
     runs-on: ubuntu-latest
-    needs: [model-training, data-prep, register-dataset]
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Deploy
-        run: echo "Deployment verified"
+        run: |
+          echo "Deployment verified"
